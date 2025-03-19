@@ -29,6 +29,7 @@ from . import AiriosConfigEntry
 from .coordinator import AiriosDataUpdateCoordinator
 from .entity import AiriosEntity
 from .services import (
+    SERVICE_FILTER_RESET,
     SERVICE_SCHEMA_SET_PRESET_FAN_SPEED,
     SERVICE_SCHEMA_SET_PRESET_MODE_DURATION,
     SERVICE_SET_PRESET_FAN_SPEED_AWAY,
@@ -149,6 +150,11 @@ async def async_setup_entry(
         SERVICE_SET_PRESET_MODE_DURATION,
         SERVICE_SCHEMA_SET_PRESET_MODE_DURATION,
         "async_set_preset_mode_duration",
+    )
+    platform.async_register_entity_service(
+        SERVICE_FILTER_RESET,
+        None,
+        "async_filter_reset",
     )
 
 
@@ -462,4 +468,16 @@ class AiriosFanEntity(AiriosEntity, FanEntity):
             raise HomeAssistantError(
                 f"Failed to set temporary preset override: {ex}"
             ) from ex
+        return True
+
+    @final
+    async def async_filter_reset(self) -> bool:
+        """Reset the filter dirty flag."""
+        node = cast(VMD02RPS78, await self.api().node(self.modbus_address))
+        _LOGGER.info("Reset filter dirty flag for node %s", str(node))
+        try:
+            if not await node.filter_reset():
+                raise HomeAssistantError("Failed to reset filter dirty flag")
+        except AiriosException as ex:
+            raise HomeAssistantError(f"Failed to reset filter dirty flag: {ex}") from ex
         return True

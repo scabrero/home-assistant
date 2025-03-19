@@ -10,6 +10,10 @@ device_reset:
       integration: airios
       supported_features:
         - airios.VMDEntityFeature.DEVICE_RESET
+filter_reset:
+  target:
+    entity:
+      integration: airios
 set_preset_fan_speed_away:
   target:
     entity:
