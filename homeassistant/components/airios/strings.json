@@ -165,6 +165,17 @@
     }
   },
   "entity": {
+    "select": {
+      "bypass_mode": {
+        "name": "Bypass mode",
+        "state": {
+          "open": "[%key:common::state::open%]",
+          "close": "[%key:common::state::closed%]",
+          "auto": "Auto",
+          "error": "Error"
+        }
+      }
+    },
     "fan": {
       "ventilation_speed": {
         "name": "Ventilation speed",
