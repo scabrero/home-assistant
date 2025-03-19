@@ -1,3 +1,15 @@
+factory_reset:
+  target:
+    entity:
+      integration: airios
+      supported_features:
+        - airios.VMDEntityFeature.FACTORY_RESET
+device_reset:
+  target:
+    entity:
+      integration: airios
+      supported_features:
+        - airios.VMDEntityFeature.DEVICE_RESET
 set_preset_fan_speed_away:
   target:
     entity:
