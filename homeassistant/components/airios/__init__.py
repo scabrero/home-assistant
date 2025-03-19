@@ -12,6 +12,7 @@ from homeassistant.const import (
     CONF_ADDRESS,
     CONF_DEVICE,
     CONF_HOST,
+    CONF_NAME,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
     CONF_TYPE,
@@ -127,3 +128,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: AiriosConfigEntry) -> b
         coordinator: AiriosDataUpdateCoordinator = entry.runtime_data
         coordinator.api.close()
     return unload_ok
+
+
+async def async_remove_subentry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    subentry_id: str,
+) -> bool:
+    """Remove a config subentry."""
+    subentry = config_entry.subentries[subentry_id]
+    address = subentry.data[CONF_ADDRESS]
+    name = subentry.data[CONF_NAME]
+    coordinator: AiriosDataUpdateCoordinator = config_entry.runtime_data
+    api = coordinator.api
+    _LOGGER.info("Unbinding %s", name)
+    return await api.unbind(address)
