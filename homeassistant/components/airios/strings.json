@@ -18,7 +18,11 @@
     "bind_result_binding_failed_serial_number_invalid": "Binding failed, invalid serial number",
     "bind_result_unknown_binding_command": "Binding failed, unknown binding command",
     "bind_result_unknown_product_type": "Binding failed, unknown product ID",
-    "bind_result_bind_failed": "Failed to bind controller. Check the logs."
+    "bind_result_bind_failed": "Failed to bind controller. Check the logs.",
+    "supply": "Supply",
+    "supply_fan_speed": "Supply fan speed",
+    "exhaust": "Exhaust",
+    "exhaust_fan_speed": "Exhaust fan speed"
   },
   "config": {
     "step": {
@@ -311,6 +315,64 @@
       },
       "frost_protection_preheater_setpoint": {
         "name": "Frost protection preheater setpoint"
+      }
+    }
+  },
+  "services": {
+    "set_preset_fan_speed_away": {
+      "name": "Set away preset fans speeds",
+      "description": "Sets the supply and exhaust fans speeds of the Away preset.",
+      "fields": {
+        "supply_fan_speed": {
+          "name": "[%key:component::airios::common::supply%]",
+          "description": "[%key:component::airios::common::supply_fan_speed%]"
+        },
+        "exhaust_fan_speed": {
+          "name": "[%key:component::airios::common::exhaust%]",
+          "description": "[%key:component::airios::common::exhaust_fan_speed%]"
+        }
+      }
+    },
+    "set_preset_fan_speed_low": {
+      "name": "Set low preset fans speeds",
+      "description": "Sets the supply and exhaust fans speeds of the Low preset.",
+      "fields": {
+        "supply_fan_speed": {
+          "name": "[%key:component::airios::common::supply%]",
+          "description": "[%key:component::airios::common::supply_fan_speed%]"
+        },
+        "exhaust_fan_speed": {
+          "name": "[%key:component::airios::common::exhaust%]",
+          "description": "[%key:component::airios::common::exhaust_fan_speed%]"
+        }
+      }
+    },
+    "set_preset_fan_speed_medium": {
+      "name": "Set medium preset fans speeds",
+      "description": "Sets the supply and exhaust fans speeds of the Medium preset.",
+      "fields": {
+        "supply_fan_speed": {
+          "name": "[%key:component::airios::common::supply%]",
+          "description": "[%key:component::airios::common::supply_fan_speed%]"
+        },
+        "exhaust_fan_speed": {
+          "name": "[%key:component::airios::common::exhaust%]",
+          "description": "[%key:component::airios::common::exhaust_fan_speed%]"
+        }
+      }
+    },
+    "set_preset_fan_speed_high": {
+      "name": "Set high preset fans speeds",
+      "description": "Sets the supply and exhaust fans speeds of the High preset.",
+      "fields": {
+        "supply_fan_speed": {
+          "name": "[%key:component::airios::common::supply%]",
+          "description": "[%key:component::airios::common::supply_fan_speed%]"
+        },
+        "exhaust_fan_speed": {
+          "name": "[%key:component::airios::common::exhaust%]",
+          "description": "[%key:component::airios::common::exhaust_fan_speed%]"
+        }
       }
     }
   }
