@@ -39,11 +39,14 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
+from . import VMDEntityFeature
 from .coordinator import AiriosDataUpdateCoordinator
 from .entity import AiriosEntity
+from .services import SERVICE_DEVICE_RESET, SERVICE_FACTORY_RESET
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,6 +58,7 @@ class AiriosSensorEntityDescription(SensorEntityDescription):
     """Airios sensor description."""
 
     value_fn: Callable[[Any], StateType] | None = None
+    supported_features: VMDEntityFeature | None = None
 
 
 VMD_ERROR_CODE_MAP: dict[VMDErrorCode, str] = {
@@ -150,6 +154,8 @@ BRIDGE_SENSOR_ENTITIES: tuple[AiriosSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.SECONDS,
         suggested_unit_of_measurement=UnitOfTime.DAYS,
         value_fn=power_on_time_value_fn,
+        supported_features=VMDEntityFeature.DEVICE_RESET
+        | VMDEntityFeature.FACTORY_RESET,
     ),
 )
 
@@ -281,6 +287,7 @@ class AiriosSensorEntity(AiriosEntity, SensorEntity):
         """Initialize the Airios sensor entity."""
         super().__init__(description.key, coordinator, node, via_config_entry, subentry)
         self.entity_description = description
+        self._attr_supported_features = description.supported_features
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -391,3 +398,17 @@ async def async_setup_entry(
                 ]
             )
         async_add_entities(entities, config_subentry_id=subentry_id)
+
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service(
+        SERVICE_DEVICE_RESET,
+        None,
+        "async_device_reset",
+        required_features=[VMDEntityFeature.DEVICE_RESET],
+    )
+    platform.async_register_entity_service(
+        SERVICE_FACTORY_RESET,
+        None,
+        "async_factory_reset",
+        required_features=[VMDEntityFeature.FACTORY_RESET],
+    )

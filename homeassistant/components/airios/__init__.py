@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import IntFlag, auto
 import logging
 
 from pyairios import Airios, AiriosRtuTransport, AiriosTcpTransport
@@ -23,6 +24,7 @@ from homeassistant.helpers import device_registry as dr
 from .const import DEFAULT_NAME, DEFAULT_SCAN_INTERVAL, DOMAIN, BridgeType
 from .coordinator import AiriosDataUpdateCoordinator
 
+__all__ = ["VMDEntityFeature"]
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
@@ -33,6 +35,14 @@ PLATFORMS: list[Platform] = [
     Platform.SELECT,
     Platform.SENSOR,
 ]
+
+
+class VMDEntityFeature(IntFlag):
+    """Supported features of a VMD controller entity."""
+
+    DEVICE_RESET = auto()
+    FACTORY_RESET = auto()
+
 
 type AiriosConfigEntry = ConfigEntry[AiriosDataUpdateCoordinator]
 
