@@ -30,10 +30,12 @@ from .coordinator import AiriosDataUpdateCoordinator
 from .entity import AiriosEntity
 from .services import (
     SERVICE_SCHEMA_SET_PRESET_FAN_SPEED,
+    SERVICE_SCHEMA_SET_PRESET_MODE_DURATION,
     SERVICE_SET_PRESET_FAN_SPEED_AWAY,
     SERVICE_SET_PRESET_FAN_SPEED_HIGH,
     SERVICE_SET_PRESET_FAN_SPEED_LOW,
     SERVICE_SET_PRESET_FAN_SPEED_MEDIUM,
+    SERVICE_SET_PRESET_MODE_DURATION,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -142,6 +144,11 @@ async def async_setup_entry(
         SERVICE_SET_PRESET_FAN_SPEED_HIGH,
         SERVICE_SCHEMA_SET_PRESET_FAN_SPEED,
         "async_set_preset_fan_speed_low",
+    )
+    platform.async_register_entity_service(
+        SERVICE_SET_PRESET_MODE_DURATION,
+        SERVICE_SCHEMA_SET_PRESET_MODE_DURATION,
+        "async_set_preset_mode_duration",
     )
 
 
@@ -415,4 +422,44 @@ class AiriosFanEntity(AiriosEntity, FanEntity):
                 )
         except AiriosException as ex:
             raise HomeAssistantError(f"Failed to set fan speeds: {ex}") from ex
+        return True
+
+    @final
+    async def async_set_preset_mode_duration(
+        self, preset_mode: str, preset_override_time: int
+    ):
+        """Set the preset mode for a limited time."""
+        if preset_mode == PRESET_NAMES[VMDVentilationSpeed.LOW]:
+            preset_mode = PRESET_NAMES[VMDVentilationSpeed.OVERRIDE_LOW]
+        elif preset_mode == PRESET_NAMES[VMDVentilationSpeed.MID]:
+            preset_mode = PRESET_NAMES[VMDVentilationSpeed.OVERRIDE_MID]
+        elif preset_mode == PRESET_NAMES[VMDVentilationSpeed.HIGH]:
+            preset_mode = PRESET_NAMES[VMDVentilationSpeed.OVERRIDE_HIGH]
+        else:
+            raise HomeAssistantError(
+                f"Temporary override not available for preset [{preset_mode}]"
+            )
+        vmd_speed = PRESET_TO_VMD_SPEED[preset_mode]
+        node = cast(VMD02RPS78, await self.api().node(self.modbus_address))
+        result = await node.capabilities()
+        caps = result.value
+        if VMDCapabilities.TIMER_CAPABLE not in caps:
+            raise HomeAssistantError(
+                f"Device {node!s} does not support preset temporary override"
+            )
+        _LOGGER.info(
+            "Setting preset mode on node %s to: %s for %s minutes",
+            str(node),
+            vmd_speed,
+            preset_override_time,
+        )
+        try:
+            if not await node.set_ventilation_speed_override_time(
+                vmd_speed, preset_override_time
+            ):
+                raise HomeAssistantError("Failed to set temporary preset override")
+        except AiriosException as ex:
+            raise HomeAssistantError(
+                f"Failed to set temporary preset override: {ex}"
+            ) from ex
         return True
