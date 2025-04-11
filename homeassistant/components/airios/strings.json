@@ -171,14 +171,14 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "off": "[%key:common::state::off%]",
-              "low": "[%key:common::state::low%]",
-              "medium": "[%key:common::state::medium%]",
-              "high": "[%key:common::state::high%]",
+              "off": "Off",
+              "low": "Low",
+              "medium": "Medium",
+              "high": "High",
               "low_override": "Low (temporary override)",
               "medium_override": "Medium (temporary override)",
               "high_override": "High (temporary override)",
-              "away": "[%key:common::state::not_home%]",
+              "away": "Away",
               "boost": "Boost",
               "auto": "Auto"
             }
