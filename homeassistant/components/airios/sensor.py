@@ -22,6 +22,7 @@ from pyairios.constants import (
 from pyairios.data_model import AiriosNodeData
 from pyairios.exceptions import AiriosException
 
+from homeassistant.components.alarm_control_panel import AlarmControlPanelEntityFeature
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -43,7 +44,6 @@ from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from . import VMDEntityFeature
 from .coordinator import AiriosDataUpdateCoordinator
 from .entity import AiriosEntity
 from .services import SERVICE_DEVICE_RESET, SERVICE_FACTORY_RESET
@@ -56,7 +56,7 @@ class AiriosSensorEntityDescription(SensorEntityDescription):
     """Airios sensor description."""
 
     value_fn: Callable[[Any], StateType] | None = None
-    supported_features: VMDEntityFeature | None = None
+    supported_features: AlarmControlPanelEntityFeature | None = None
 
 
 VMD_ERROR_CODE_MAP: dict[VMDErrorCode, str] = {
@@ -152,8 +152,10 @@ BRIDGE_SENSOR_ENTITIES: tuple[AiriosSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.SECONDS,
         suggested_unit_of_measurement=UnitOfTime.DAYS,
         value_fn=power_on_time_value_fn,
-        supported_features=VMDEntityFeature.DEVICE_RESET
-        | VMDEntityFeature.FACTORY_RESET,
+        # Yes, this not makes any sense but there is no way of defining
+        # per-integration features without hassfest screaming out
+        supported_features=AlarmControlPanelEntityFeature.ARM_AWAY
+        | AlarmControlPanelEntityFeature.ARM_HOME,
     ),
 )
 
@@ -402,11 +404,11 @@ async def async_setup_entry(
         SERVICE_DEVICE_RESET,
         None,
         "async_device_reset",
-        required_features=[VMDEntityFeature.DEVICE_RESET],
+        required_features=[AlarmControlPanelEntityFeature.ARM_HOME],
     )
     platform.async_register_entity_service(
         SERVICE_FACTORY_RESET,
         None,
         "async_factory_reset",
-        required_features=[VMDEntityFeature.FACTORY_RESET],
+        required_features=[AlarmControlPanelEntityFeature.ARM_AWAY],
     )

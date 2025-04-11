@@ -3,13 +3,17 @@ factory_reset:
     entity:
       integration: airios
       supported_features:
-        - airios.VMDEntityFeature.FACTORY_RESET
+        # Yes, this not makes any sense but there is no way of defining
+        # per-integration features without hassfest screaming out
+        - alarm_control_panel.AlarmControlPanelEntityFeature.ARM_AWAY
 device_reset:
   target:
     entity:
       integration: airios
       supported_features:
-        - airios.VMDEntityFeature.DEVICE_RESET
+        # Yes, this not makes any sense but there is no way of defining
+        # per-integration features without hassfest screaming out
+        - alarm_control_panel.AlarmControlPanelEntityFeature.ARM_HOME
 set_preset_fan_speed_away:
   target:
     entity:
