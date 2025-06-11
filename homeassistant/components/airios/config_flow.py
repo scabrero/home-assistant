@@ -20,6 +20,7 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
     ConfigSubentryFlow,
+    OptionsFlow,
     SubentryFlowResult,
 )
 from homeassistant.const import (
@@ -28,6 +29,7 @@ from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
     CONF_PORT,
+    CONF_SCAN_INTERVAL,
     CONF_TYPE,
 )
 from homeassistant.core import callback
@@ -40,6 +42,7 @@ from .const import (
     CONF_DEFAULT_PORT,
     CONF_DEFAULT_SERIAL_MODBUS_ADDRESS,
     CONF_RF_ADDRESS,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     SUPPORTED_ACCESSORIES,
     SUPPORTED_UNITS,
@@ -244,6 +247,12 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
         }
         return data
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler()
+
     @classmethod
     @callback
     def async_get_supported_subentry_types(
@@ -254,6 +263,31 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
             "controller": ControllerSubentryFlowHandler,
             "accessory": AccessorySubentryFlowHandler,
         }
+
+
+class OptionsFlowHandler(OptionsFlow):
+    """Handle the options flow for Airios."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the initial step."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        scan_interval = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+        )
+
+        # Ethernet bridge closes connection when no communication for 3 mins
+        opts_schema = vol.Schema(
+            {
+                vol.Required(CONF_SCAN_INTERVAL, default=scan_interval): vol.All(
+                    vol.Coerce(int), vol.Range(min=15, max=150)
+                )
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=opts_schema)
 
 
 class ControllerSubentryFlowHandler(ConfigSubentryFlow):
