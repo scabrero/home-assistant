@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from types import MappingProxyType
 from typing import Any
 
 from pyairios import Airios, AiriosException, AiriosRtuTransport, AiriosTcpTransport
@@ -16,6 +17,8 @@ import voluptuous as vol
 
 from homeassistant.components import usb
 from homeassistant.config_entries import (
+    SOURCE_RECONFIGURE,
+    SOURCE_USER,
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
@@ -60,6 +63,7 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    _reconfigure_data: MappingProxyType[str, Any]
     _modbus_address: int
 
     async def async_step_user(
@@ -73,10 +77,17 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def _finish(self, entry_data: dict[str, Any]):
         bridge_rf_address = entry_data[CONF_BRIDGE_RF_ADDRESS]
-        return self.async_create_entry(
-            title=f"Airios RF bridge ({bridge_rf_address:06X})",
-            data=entry_data,
-        )
+        if self.source == SOURCE_USER:
+            return self.async_create_entry(
+                title=f"Airios RF bridge ({bridge_rf_address:06X})",
+                data=entry_data,
+            )
+        if self.source == SOURCE_RECONFIGURE:
+            return self.async_update_reload_and_abort(
+                self._get_reconfigure_entry(),
+                data=entry_data,
+            )
+        raise HomeAssistantError(f"Unknown config flow source {self.source}")
 
     async def async_step_network(
         self, user_input: dict[str, Any] | None = None
@@ -102,6 +113,13 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
         conf_host = CONF_DEFAULT_HOST
         conf_port = CONF_DEFAULT_PORT
         conf_modbus_address = CONF_DEFAULT_NETWORK_MODBUS_ADDRESS
+        if self.source == SOURCE_RECONFIGURE:
+            if hasattr(self._reconfigure_data, CONF_HOST):
+                conf_host = self._reconfigure_data[CONF_HOST]
+            if hasattr(self._reconfigure_data, CONF_PORT):
+                conf_port = self._reconfigure_data[CONF_PORT]
+            if hasattr(self._reconfigure_data, CONF_ADDRESS):
+                conf_modbus_address = self._reconfigure_data[CONF_ADDRESS]
         schema = vol.Schema(
             {
                 vol.Required(CONF_HOST, default=conf_host): str,
@@ -158,6 +176,12 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
         list_of_ports[CONF_MANUAL_PATH] = CONF_MANUAL_PATH
         conf_device = vol.UNDEFINED
         conf_modbus_address = CONF_DEFAULT_SERIAL_MODBUS_ADDRESS
+        if self.source == SOURCE_RECONFIGURE:
+            if hasattr(self._reconfigure_data, CONF_DEVICE):
+                conf_device = self._reconfigure_data[CONF_DEVICE]
+            if hasattr(self._reconfigure_data, CONF_ADDRESS):
+                conf_modbus_address = self._reconfigure_data[CONF_ADDRESS]
+
         schema = vol.Schema(
             {
                 vol.Required(CONF_DEVICE, default=conf_device): vol.In(list_of_ports),
@@ -191,6 +215,10 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self._finish(data)
 
         conf_device = vol.UNDEFINED
+        if self.source == SOURCE_RECONFIGURE:
+            if hasattr(self._reconfigure_data, CONF_DEVICE):
+                conf_device = self._reconfigure_data[CONF_DEVICE]
+
         schema = vol.Schema({vol.Required(CONF_DEVICE, default=conf_device): str})
         return self.async_show_form(
             step_id="serial_manual_path",
@@ -209,7 +237,10 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
         bridge_rf_address = result.value
 
         await self.async_set_unique_id(f"{bridge_rf_address}")
-        self._abort_if_unique_id_configured()
+        if self.source == SOURCE_USER:
+            self._abort_if_unique_id_configured()
+        if self.source == SOURCE_RECONFIGURE:
+            self._abort_if_unique_id_mismatch()
 
         return bridge_rf_address
 
@@ -246,6 +277,13 @@ class AiriosConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_BRIDGE_RF_ADDRESS: bridge_rf_address,
         }
         return data
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration."""
+        self._reconfigure_data = self._get_reconfigure_entry().data
+        return await self.async_step_user()
 
     @staticmethod
     @callback

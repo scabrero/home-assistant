@@ -186,6 +186,54 @@ async def test_config_flow_unique_id_already_configured(
     assert result["reason"] == "already_configured"
 
 
+async def test_reconfigure_flow_unique_id_mismatch(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test reconfigure flow aborts with unique id mismatch."""
+
+    mock_config_entry.add_to_hass(hass)
+
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+    assert result["type"] is FlowResultType.MENU
+
+    mockports = []
+    mockports.append(list_ports_common.ListPortInfo("/dev/ttyACM9"))
+    with patch(
+        "serial.tools.list_ports.comports",
+        return_value=mockports,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"next_step_id": "serial"},
+        )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "serial"
+    assert result["errors"] == {}
+
+    with (
+        patch(
+            "homeassistant.components.airios.async_setup_entry",
+            return_value=True,
+        ),
+        patch(
+            "pyairios.node.AiriosNode.node_rf_address",
+            return_value=Result(0xBAAFEE, None),
+        ),
+        patch(
+            "pyairios.node.AiriosNode.node_product_id",
+            return_value=Result(ProductId.BRDG_02R13, None),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_DEVICE: "/dev/ttyACM9", CONF_ADDRESS: 207},
+        )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "unique_id_mismatch"
+
+
 async def test_config_flow_unexpected_product_id(hass: HomeAssistant) -> None:
     """Test serial RF bridge setup."""
     result = await hass.config_entries.flow.async_init(
