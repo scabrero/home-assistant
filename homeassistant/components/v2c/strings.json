@@ -47,6 +47,9 @@
       },
       "min_intensity": {
         "name": "Min intensity"
+      },
+      "voltage_installation": {
+        "name": "Installation voltage"
       }
     },
     "sensor": {
