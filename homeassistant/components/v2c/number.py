@@ -4,17 +4,21 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any, override
 
-from pytrydan import Trydan, TrydanData
+from pytrydan import DynamicPowerMode, Trydan, TrydanData
 
 from homeassistant.components.number import (
+    DEFAULT_MAX_VALUE,
+    DEFAULT_MIN_VALUE,
     NumberDeviceClass,
     NumberEntity,
     NumberEntityDescription,
+    NumberMode,
 )
 from homeassistant.const import (
     EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
+    UnitOfPower,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -28,12 +32,36 @@ MIN_VOLTAGE = 1
 MAX_VOLTAGE = 500
 
 
+def _contracted_power_min(data: TrydanData) -> float:
+    if data.dynamic_power_mode == DynamicPowerMode.TIMED_POWER_ENABLED:
+        return float(data.contracted_power)
+    if (
+        data.dynamic_power_mode
+        == DynamicPowerMode.TIMED_POWER_DISABLED_AND_FV_EXCL_MODE_SETTED
+    ):
+        return float(-5000)
+    return float(0)
+
+
+def _contracted_power_max(data: TrydanData) -> float:
+    if data.dynamic_power_mode == DynamicPowerMode.TIMED_POWER_ENABLED:
+        return float(data.contracted_power)
+    if (
+        data.dynamic_power_mode
+        == DynamicPowerMode.TIMED_POWER_DISABLED_AND_FV_EXCL_MODE_SETTED
+    ):
+        return float(5000)
+    return float(10000)
+
+
 @dataclass(frozen=True, kw_only=True)
 class V2CSettingsNumberEntityDescription(NumberEntityDescription):
     """Describes V2C EVSE number entity."""
 
     value_fn: Callable[[TrydanData], int | None]
     update_fn: Callable[[Trydan, int], Coroutine[Any, Any, None]]
+    native_min_value_fn: Callable[[TrydanData], float] | None = None
+    native_max_value_fn: Callable[[TrydanData], float] | None = None
 
 
 TRYDAN_NUMBER_SETTINGS = (
@@ -81,6 +109,20 @@ TRYDAN_NUMBER_SETTINGS = (
         update_fn=lambda evse, value: evse.voltage_installation(value),
         entity_registry_enabled_default=False,
     ),
+    V2CSettingsNumberEntityDescription(
+        key="contracted_power",
+        translation_key="contracted_power",
+        device_class=NumberDeviceClass.POWER,
+        entity_category=EntityCategory.CONFIG,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_min_value_fn=_contracted_power_min,
+        native_max_value_fn=_contracted_power_max,
+        native_step=100,
+        value_fn=lambda evse_data: evse_data.contracted_power,
+        update_fn=lambda evse, value: evse.contracted_power(value),
+        entity_registry_enabled_default=False,
+        mode=NumberMode.BOX,
+    ),
 )
 
 
@@ -118,6 +160,26 @@ class V2CSettingsNumberEntity(V2CBaseEntity, NumberEntity):
     def native_value(self) -> float | None:
         """Return the state of the setting entity."""
         return self.entity_description.value_fn(self.data)
+
+    @property
+    @override
+    def native_max_value(self) -> float:
+        """Return the native max value of the number."""
+        if self.entity_description.native_max_value_fn:
+            return self.entity_description.native_max_value_fn(self.data)
+        if self.entity_description.native_max_value:
+            return self.entity_description.native_max_value
+        return DEFAULT_MAX_VALUE
+
+    @property
+    @override
+    def native_min_value(self) -> float:
+        """Return the native min value of the number."""
+        if self.entity_description.native_min_value_fn:
+            return self.entity_description.native_min_value_fn(self.data)
+        if self.entity_description.native_min_value:
+            return self.entity_description.native_min_value
+        return DEFAULT_MIN_VALUE
 
     @override
     async def async_set_native_value(self, value: float) -> None:

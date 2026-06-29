@@ -39,6 +39,9 @@
       }
     },
     "number": {
+      "contracted_power": {
+        "name": "Contracted power"
+      },
       "intensity": {
         "name": "Intensity"
       },
