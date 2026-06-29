@@ -4,21 +4,28 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any, override
 
-from pytrydan import Trydan, TrydanData
+from pytrydan import DynamicPowerMode, Trydan, TrydanData
 
 from homeassistant.components.number import (
     NumberDeviceClass,
     NumberEntity,
     NumberEntityDescription,
+    NumberMode,
+    RestoreNumber,
 )
 from homeassistant.const import (
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
     EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
+    UnitOfPower,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import CONF_PV_AVAILABLE, DOMAIN
 from .coordinator import V2CConfigEntry, V2CUpdateCoordinator
 from .entity import V2CBaseEntity
 
@@ -84,6 +91,65 @@ TRYDAN_NUMBER_SETTINGS = (
 )
 
 
+@dataclass(frozen=True, kw_only=True)
+class V2CHelperNumberEntityDescription(NumberEntityDescription):
+    """Describes V2C EVSE helper entity."""
+
+    update_fn: Callable[[Trydan, int], Coroutine[Any, Any, None]]
+
+
+async def _update_fv_excl_balance(evse: Trydan, value: float) -> None:
+    if not evse.data:
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="no_data")
+    if (
+        evse.data.dynamic_power_mode
+        == DynamicPowerMode.TIMED_POWER_DISABLED_AND_FV_EXCL_MODE_SETTED
+    ):
+        await evse.contracted_power(round(float(value)))
+
+
+async def _update_contracted_power(evse: Trydan, value: float) -> None:
+    if not evse.data:
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="no_data")
+    if evse.data.dynamic_power_mode not in (
+        DynamicPowerMode.TIMED_POWER_DISABLED_AND_FV_EXCL_MODE_SETTED,
+        DynamicPowerMode.TIMED_POWER_ENABLED,
+    ):
+        await evse.contracted_power(round(float(value)))
+
+
+# These numbers are helpers completely detached from the Trydan API to adjust
+# the contracted power Trydan parameter. They are used by the dynamic power
+# selector to adjust the device contracted power depending on the selected
+# mode.
+TRYDAN_NUMBER_HELPERS = (
+    V2CHelperNumberEntityDescription(
+        key="fv_excl_balance",
+        translation_key="fv_excl_balance",
+        device_class=NumberDeviceClass.POWER,
+        entity_category=EntityCategory.CONFIG,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_min_value=-5000,
+        native_max_value=5000,
+        native_step=100,
+        mode=NumberMode.BOX,
+        update_fn=_update_fv_excl_balance,
+    ),
+    V2CHelperNumberEntityDescription(
+        key="contracted_power",
+        translation_key="contracted_power",
+        device_class=NumberDeviceClass.POWER,
+        entity_category=EntityCategory.CONFIG,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_min_value=0,
+        native_max_value=10000,
+        native_step=100,
+        mode=NumberMode.BOX,
+        update_fn=_update_contracted_power,
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: V2CConfigEntry,
@@ -96,6 +162,11 @@ async def async_setup_entry(
         V2CSettingsNumberEntity(coordinator, description, config_entry.entry_id)
         for description in TRYDAN_NUMBER_SETTINGS
     )
+    if config_entry.data.get(CONF_PV_AVAILABLE):
+        async_add_entities(
+            V2CHelperNumberEntity(coordinator, description, config_entry.entry_id)
+            for description in TRYDAN_NUMBER_HELPERS
+        )
 
 
 class V2CSettingsNumberEntity(V2CBaseEntity, NumberEntity):
@@ -123,4 +194,43 @@ class V2CSettingsNumberEntity(V2CBaseEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Update the setting."""
         await self.entity_description.update_fn(self.coordinator.evse, int(value))
+        await self.coordinator.async_request_refresh()
+
+
+class V2CHelperNumberEntity(V2CBaseEntity, RestoreNumber):
+    """Representation of V2C EVSE helper number entity."""
+
+    entity_description: V2CHelperNumberEntityDescription
+
+    def __init__(
+        self,
+        coordinator: V2CUpdateCoordinator,
+        description: V2CHelperNumberEntityDescription,
+        entry_id: str,
+    ) -> None:
+        """Initialize the V2C number helper entity."""
+        super().__init__(coordinator, description)
+        self._attr_unique_id = f"{entry_id}_{description.key}"
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to Home Assistant."""
+        await super().async_added_to_hass()
+
+        if (
+            (last_state := await self.async_get_last_state())
+            and (last_number_data := await self.async_get_last_number_data())
+            and last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+            and last_number_data.native_value is not None
+        ):
+            await self.async_set_native_value(last_number_data.native_value)
+
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Update the current value."""
+        self._attr_native_value = round(float(value))
+        self.async_write_ha_state()
+        await self.entity_description.update_fn(
+            self.coordinator.evse, round(float(value))
+        )
         await self.coordinator.async_request_refresh()

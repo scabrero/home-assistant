@@ -53,6 +53,12 @@
       }
     },
     "number": {
+      "contracted_power": {
+        "name": "Contracted power"
+      },
+      "fv_excl_balance": {
+        "name": "FV exclusive mode balance"
+      },
       "intensity": {
         "name": "Intensity"
       },
@@ -164,6 +170,11 @@
       "timer": {
         "name": "Charge point timer"
       }
+    }
+  },
+  "exceptions": {
+    "no_data": {
+      "message": "No data has been retrieved from the EVSE yet. Please try again in a few seconds."
     }
   },
   "issues": {
