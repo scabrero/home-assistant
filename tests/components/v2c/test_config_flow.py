@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pytrydan.exceptions import TrydanError
 
-from homeassistant.components.v2c.const import DOMAIN
+from homeassistant.components.v2c.const import CONF_PV_AVAILABLE, DOMAIN
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
@@ -24,13 +24,13 @@ async def test_full_flow(
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {CONF_HOST: "1.1.1.1"},
+        {CONF_HOST: "1.1.1.1", CONF_PV_AVAILABLE: True},
     )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "EVSE 1.1.1.1"
-    assert result["data"] == {CONF_HOST: "1.1.1.1"}
+    assert result["data"] == {CONF_HOST: "1.1.1.1", CONF_PV_AVAILABLE: True}
     assert len(mock_setup_entry.mock_calls) == 1
 
 
@@ -52,7 +52,7 @@ async def test_form_cannot_connect(
     mock_v2c_client.get_data.side_effect = side_effect
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {CONF_HOST: "1.1.1.1"},
+        {CONF_HOST: "1.1.1.1", CONF_PV_AVAILABLE: True},
     )
 
     assert result["type"] is FlowResultType.FORM
@@ -61,10 +61,10 @@ async def test_form_cannot_connect(
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {CONF_HOST: "1.1.1.1"},
+        {CONF_HOST: "1.1.1.1", CONF_PV_AVAILABLE: True},
     )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "EVSE 1.1.1.1"
-    assert result["data"] == {CONF_HOST: "1.1.1.1"}
+    assert result["data"] == {CONF_HOST: "1.1.1.1", CONF_PV_AVAILABLE: True}

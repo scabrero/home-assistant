@@ -9,15 +9,17 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST
+from homeassistant.helpers import selector
 from homeassistant.helpers.httpx_client import get_async_client
 
-from .const import DOMAIN
+from .const import CONF_PV_AVAILABLE, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
+        vol.Required(CONF_PV_AVAILABLE): selector.BooleanSelector(),
     }
 )
 

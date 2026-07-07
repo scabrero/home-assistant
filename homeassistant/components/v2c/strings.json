@@ -10,20 +10,24 @@
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "step": {
-      "user": {
-        "data": {
-          "host": "[%key:common::config_flow::data::host%]"
-        },
-        "data_description": {
-          "host": "Hostname or IP address of your V2C Trydan EVSE."
-        }
-      },
       "reconfigure": {
         "data": {
-          "host": "[%key:common::config_flow::data::host%]"
+          "host": "[%key:common::config_flow::data::host%]",
+          "pv_available": "Installation with photovoltaic"
         },
         "data_description": {
-          "host": "Hostname or IP address of your V2C Trydan EVSE."
+          "host": "Hostname or IP address of your V2C Trydan EVSE.",
+          "pv_available": "The V2C Trydan EVSE will integrate with photovoltaic."
+        }
+      },
+      "user": {
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]",
+          "pv_available": "Installation with photovoltaic"
+        },
+        "data_description": {
+          "host": "Hostname or IP address of your V2C Trydan EVSE.",
+          "pv_available": "The V2C Trydan EVSE will integrate with photovoltaic."
         }
       }
     }
