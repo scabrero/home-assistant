@@ -80,6 +80,16 @@
           "monophasic": "Monophasic",
           "threephasic": "Three-phase"
         }
+      },
+      "dynamic_power_mode": {
+        "name": "Dynamic power mode",
+        "state": {
+          "0": "Profile",
+          "2": "FV + minimum power",
+          "3": "FV exclusive",
+          "4": "FV + grid",
+          "5": "Stop"
+        }
       }
     },
     "sensor": {
@@ -175,6 +185,15 @@
   "exceptions": {
     "no_data": {
       "message": "No data has been retrieved from the EVSE yet. Please try again in a few seconds."
+    },
+    "no_device": {
+      "message": "Device not found in config entry {config_entry_id}."
+    },
+    "no_entity": {
+      "message": "Entity {key} not found."
+    },
+    "no_state": {
+      "message": "Unknown {entity_id} state."
     }
   },
   "issues": {
