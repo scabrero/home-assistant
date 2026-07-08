@@ -194,6 +194,12 @@
     },
     "no_state": {
       "message": "Unknown {entity_id} state."
+    },
+    "unknown_config_entry_id": {
+      "message": "Unknown config entry ID {entry_id}."
+    },
+    "unknown_issue_id": {
+      "message": "Unknown issue ID {issue_id}."
     }
   },
   "issues": {
@@ -204,6 +210,23 @@
     "deprecated_sensor_scripts": {
       "description": "The sensor {entity_name} (`{entity_id}`) is deprecated because it has been replaced with `{replacement_entity_id}`.\n\nThe sensor was used in the following automations or scripts:\n{items}\n\nUpdate the above automations or scripts to use the replacement entity, then disable the deprecated sensor to have it removed after the next restart.",
       "title": "[%key:component::v2c::issues::deprecated_sensor::title%]"
+    },
+    "reconfigure_needed": {
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "data": {
+              "pv_available": "Installation with photovoltaic"
+            },
+            "data_description": {
+              "pv_available": "The V2C Trydan EVSE will integrate with photovoltaic."
+            },
+            "description": "The integration offers new features for device **{id}**, enable as needed.",
+            "title": "New features available"
+          }
+        }
+      },
+      "title": "Reconfiguration required"
     }
   }
 }
