@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pytrydan.models.trydan import TrydanData
 
-from homeassistant.components.v2c.const import DOMAIN
+from homeassistant.components.v2c.const import CONF_PV_AVAILABLE, DOMAIN
 from homeassistant.const import CONF_HOST
 from homeassistant.helpers.json import json_dumps
 
@@ -30,6 +30,17 @@ def mock_config_entry() -> MockConfigEntry:
         entry_id="da58ee91f38c2406c2a36d0a1a7f8569",
         title="EVSE 1.1.1.1",
         data={CONF_HOST: "1.1.1.1"},
+    )
+
+
+@pytest.fixture
+def mock_pv_config_entry() -> MockConfigEntry:
+    """Define a config entry with photovoltaic enabled."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="da58ee91f38c2406c2a36d0a1a7f8569",
+        title="EVSE 1.1.1.1",
+        data={CONF_HOST: "1.1.1.1", CONF_PV_AVAILABLE: True},
     )
 
 
